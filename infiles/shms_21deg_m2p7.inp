@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
      1000000	Monte-Carlo trials
         2       Spectrometer (1=HMS, 2=SHMS, 3=..)
-     2654.1	Spectrometer momentum (in MeV/c)
+     2700.0	Spectrometer momentum (in MeV/c)
      21.0	Spectrometer angle (in degrees)C
     -20.0	M.C. DP/P  down limit 
      30.0	M.C. DP/P  up   limit 
