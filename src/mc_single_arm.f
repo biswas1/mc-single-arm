@@ -59,6 +59,7 @@ C Event limits, topdrawer limits, physics quantities
 	real*8 x_a,y_a,z_a,dydz_a,dif_a,dydz_aa,dif_aa   ! TH - for target aperture check
 	real*8 musc_targ_len			!target length for multiple scattering
         real*8 foil_nm, foil_tk                 !multifoil target
+	real*8 foil_zcent
         parameter (foil_tk=0.02)
 	real*8 m2				!particle mass squared.
 	real*8 rad_len_cm			!conversion r.l. to cm for target
@@ -454,7 +455,10 @@ C------------------------------------------------------------------------------C
 ! function does not type cast string to integer otherwise.
           itime=time8()
    	  call ctime(itime,timestring)
-c	  call srand(itime)
+	  write(6,*) 'Using random seed based on clock time'
+          write(6,*) 'Starting random number seed: ',itime
+C DJG - If you want to use default (fixed) seed, comment out the line below
+          call sgrnd(itime)
 
 	do Itrial = 1,n_trials
 	   if(ispec.eq.1) then
@@ -482,12 +486,23 @@ C Units are cm.
           elseif(gen_lim(6).eq.-3) then                 !optics1: three foils
              foil_nm=3*grnd()-1.5                       !20um foils;  z=0, +/- 10cm
              foil_nm=anint(foil_nm)                     != -1, 0, 1
-	     z = (grnd() - 0.5) * foil_tk + foil_nm * 10
+	     foil_zcent = foil_nm * 10
+	     z = (grnd() - 0.5) * foil_tk+ foil_nm * 10
 
           elseif(gen_lim(6).eq.-2) then                 !optics2: two foils
              foil_nm=grnd()                             !20um foils; z= +/- 5cm
              foil_nm=anint(foil_nm)                     != 0, 1
+	     foil_zcent = foil_nm * 5
 	     z = (grnd() - 0.5) * foil_tk - 5+ foil_nm * 10
+	  elseif(gen_lim(6).eq.-5) then
+            foil_nm=5*grnd()-2.5                       ! pol target optics
+             foil_nm=anint(foil_nm)                     !=
+	     if (foil_nm .eq. -2) foil_zcent = 20.
+	     if (foil_nm .eq. -1) foil_zcent = 13.34
+	     if (foil_nm .eq. 0)  foil_zcent = 0.0
+	     if (foil_nm .eq. 1) foil_zcent = -20.
+	     if (foil_nm .eq. 2) foil_zcent = -30.
+             z= (grnd() - 0.5) * foil_tk + foil_zcent
 
           endif
 C DJG Assume flat raster
@@ -590,13 +605,17 @@ C Choices:
 C 1. cryocylinder: Basic cylinder(2.65 inches diameter --> 3.37 cm radius) w/flat exit window (5 mil Al)
 C 2. cryotarg2017: Cylinder (1.32 inches radisu)  with curved exit window (same radius) 5 mil sides/exit
 C 3. Tuna can: shaped like a tuna can - 4 cm diameter (usually)  - 5 mil window. 
-	  if (abs(gen_lim(6)).gt.3.) then ! anything longer than 3 cm assumed to be cryotarget
+	  if (gen_lim(6).gt.3.) then ! anything longer than 3 cm assumed to be cryotarget
 c	    call cryotuna(z,th_ev,rad_len_cm,gen_lim(6),musc_targ_len)
 c	    call cryocylinder(z,th_ev,rad_len_cm,gen_lim(6),musc_targ_len)
 	     call cryotarg2017(z,th_ev,rad_len_cm,gen_lim(6),musc_targ_len)
 C Simple solid target
 	 else
+	    if (gen_lim(6).gt.0) then
 	    musc_targ_len = abs(gen_lim(6)/2. - z)/rad_len_cm/cos_ev
+	    else ! using multifoil target
+	    musc_targ_len = abs(foil_tk/2. - (z-foil_zcent))/rad_len_cm/cos_ev	       
+	    endif
 	 endif
 
 C Scattering before magnets:  Approximate all scattering as occuring AT TARGET.
